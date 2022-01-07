@@ -15,11 +15,9 @@ func TestAccEC2RouteDataSource_basic(t *testing.T) {
 	instanceRouteResourceName := "aws_route.instance"
 	pcxRouteResourceName := "aws_route.vpc_peering_connection"
 	rtResourceName := "aws_route_table.test"
-	instanceResourceName := "aws_instance.test"
 	pcxResourceName := "aws_vpc_peering_connection.test"
 	datasource1Name := "data.aws_route.by_destination_cidr_block"
-	datasource2Name := "data.aws_route.by_instance_id"
-	datasource3Name := "data.aws_route.by_peering_connection_id"
+	datasource2Name := "data.aws_route.by_peering_connection_id"
 	rName := sdkacctest.RandomWithPrefix(acctest.ResourcePrefix)
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -34,15 +32,10 @@ func TestAccEC2RouteDataSource_basic(t *testing.T) {
 					resource.TestCheckResourceAttrPair(datasource1Name, "destination_cidr_block", instanceRouteResourceName, "destination_cidr_block"),
 					resource.TestCheckResourceAttrPair(datasource1Name, "route_table_id", rtResourceName, "id"),
 
-					// By instance ID.
-					resource.TestCheckResourceAttrPair(datasource2Name, "destination_cidr_block", instanceRouteResourceName, "destination_cidr_block"),
-					resource.TestCheckResourceAttrPair(datasource2Name, "instance_id", instanceResourceName, "id"),
-					resource.TestCheckResourceAttrPair(datasource2Name, "route_table_id", rtResourceName, "id"),
-
 					// By VPC peering connection ID.
-					resource.TestCheckResourceAttrPair(datasource3Name, "destination_cidr_block", pcxRouteResourceName, "destination_cidr_block"),
-					resource.TestCheckResourceAttrPair(datasource3Name, "route_table_id", rtResourceName, "id"),
-					resource.TestCheckResourceAttrPair(datasource3Name, "vpc_peering_connection_id", pcxResourceName, "id"),
+					resource.TestCheckResourceAttrPair(datasource2Name, "destination_cidr_block", pcxRouteResourceName, "destination_cidr_block"),
+					resource.TestCheckResourceAttrPair(datasource2Name, "route_table_id", rtResourceName, "id"),
+					resource.TestCheckResourceAttrPair(datasource2Name, "vpc_peering_connection_id", pcxResourceName, "id"),
 				),
 			},
 		},
@@ -263,12 +256,6 @@ resource "aws_instance" "test" {
   }
 }
 
-resource "aws_route" "instance" {
-  route_table_id         = aws_route_table.test.id
-  destination_cidr_block = "10.0.1.0/24"
-  instance_id            = aws_instance.test.id
-}
-
 data "aws_route" "by_peering_connection_id" {
   route_table_id            = aws_route_table.test.id
   vpc_peering_connection_id = aws_route.vpc_peering_connection.vpc_peering_connection_id
@@ -277,11 +264,6 @@ data "aws_route" "by_peering_connection_id" {
 data "aws_route" "by_destination_cidr_block" {
   route_table_id         = aws_route_table.test.id
   destination_cidr_block = aws_route.instance.destination_cidr_block
-}
-
-data "aws_route" "by_instance_id" {
-  route_table_id = aws_route_table.test.id
-  instance_id    = aws_route.instance.instance_id
 }
 `, rName))
 }

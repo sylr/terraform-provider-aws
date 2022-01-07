@@ -58,11 +58,6 @@ func DataSourceRoute() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
-			"instance_id": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-			},
 			"local_gateway_id": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -140,10 +135,6 @@ func dataSourceRouteRead(d *schema.ResourceData, meta interface{}) error {
 			continue
 		}
 
-		if v, ok := d.GetOk("instance_id"); ok && aws.StringValue(r.InstanceId) != v.(string) {
-			continue
-		}
-
 		if v, ok := d.GetOk("local_gateway_id"); ok && aws.StringValue(r.LocalGatewayId) != v.(string) {
 			continue
 		}
@@ -191,7 +182,6 @@ func dataSourceRouteRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("destination_prefix_list_id", route.DestinationPrefixListId)
 	d.Set("egress_only_gateway_id", route.EgressOnlyInternetGatewayId)
 	d.Set("gateway_id", route.GatewayId)
-	d.Set("instance_id", route.InstanceId)
 	d.Set("local_gateway_id", route.LocalGatewayId)
 	d.Set("nat_gateway_id", route.NatGatewayId)
 	d.Set("network_interface_id", route.NetworkInterfaceId)
