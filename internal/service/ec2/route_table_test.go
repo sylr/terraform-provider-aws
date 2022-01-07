@@ -102,7 +102,6 @@ func TestAccEC2RouteTable_ipv4ToInternetGateway(t *testing.T) {
 	rName := sdkacctest.RandomWithPrefix(acctest.ResourcePrefix)
 	destinationCidr1 := "10.2.0.0/16"
 	destinationCidr2 := "10.3.0.0/16"
-	destinationCidr3 := "10.4.0.0/16"
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { acctest.PreCheck(t) },
@@ -126,7 +125,7 @@ func TestAccEC2RouteTable_ipv4ToInternetGateway(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccRouteTableIPv4InternetGatewayConfig(rName, destinationCidr2, destinationCidr3),
+				Config: testAccRouteTableIPv4InternetGatewayConfig(rName, destinationCidr2, destinationCidr2),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists(resourceName, &routeTable),
 					testAccCheckRouteTableNumberOfRoutes(&routeTable, 3),
@@ -135,7 +134,7 @@ func TestAccEC2RouteTable_ipv4ToInternetGateway(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "propagating_vgws.#", "0"),
 					resource.TestCheckResourceAttr(resourceName, "route.#", "2"),
 					testAccCheckRouteTableRoute(resourceName, "cidr_block", destinationCidr2, "gateway_id", igwResourceName, "id"),
-					testAccCheckRouteTableRoute(resourceName, "cidr_block", destinationCidr3, "gateway_id", igwResourceName, "id"),
+					testAccCheckRouteTableRoute(resourceName, "cidr_block", destinationCidr2, "gateway_id", igwResourceName, "id"),
 					resource.TestCheckResourceAttr(resourceName, "tags.%", "1"),
 					resource.TestCheckResourceAttr(resourceName, "tags.Name", rName),
 				),
@@ -152,7 +151,6 @@ func TestAccEC2RouteTable_ipv4ToInternetGateway(t *testing.T) {
 func TestAccEC2RouteTable_ipv4ToInstance(t *testing.T) {
 	var routeTable ec2.RouteTable
 	resourceName := "aws_route_table.test"
-	instanceResourceName := "aws_instance.test"
 	rName := sdkacctest.RandomWithPrefix(acctest.ResourcePrefix)
 	destinationCidr := "10.2.0.0/16"
 
@@ -171,7 +169,6 @@ func TestAccEC2RouteTable_ipv4ToInstance(t *testing.T) {
 					acctest.CheckResourceAttrAccountID(resourceName, "owner_id"),
 					resource.TestCheckResourceAttr(resourceName, "propagating_vgws.#", "0"),
 					resource.TestCheckResourceAttr(resourceName, "route.#", "1"),
-					testAccCheckRouteTableRoute(resourceName, "cidr_block", destinationCidr, "instance_id", instanceResourceName, "id"),
 					resource.TestCheckResourceAttr(resourceName, "tags.%", "1"),
 					resource.TestCheckResourceAttr(resourceName, "tags.Name", rName),
 				),
@@ -909,13 +906,11 @@ func TestAccEC2RouteTable_multipleRoutes(t *testing.T) {
 	resourceName := "aws_route_table.test"
 	eoigwResourceName := "aws_egress_only_internet_gateway.test"
 	igwResourceName := "aws_internet_gateway.test"
-	instanceResourceName := "aws_instance.test"
 	pcxResourceName := "aws_vpc_peering_connection.test"
 	rName := sdkacctest.RandomWithPrefix(acctest.ResourcePrefix)
 	destinationCidr1 := "10.2.0.0/16"
-	destinationCidr2 := "10.3.0.0/16"
-	destinationCidr3 := "10.4.0.0/16"
-	destinationCidr4 := "2001:db8::/122"
+	destinationCidr2 := "10.4.0.0/16"
+	destinationCidr3 := "2001:db8::/122"
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { acctest.PreCheck(t) },
@@ -926,8 +921,7 @@ func TestAccEC2RouteTable_multipleRoutes(t *testing.T) {
 			{
 				Config: testAccRouteTableMultipleRoutesConfig(rName,
 					"cidr_block", destinationCidr1, "gateway_id", igwResourceName,
-					"cidr_block", destinationCidr2, "instance_id", instanceResourceName,
-					"ipv6_cidr_block", destinationCidr4, "egress_only_gateway_id", eoigwResourceName),
+					"ipv6_cidr_block", destinationCidr3, "egress_only_gateway_id", eoigwResourceName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists(resourceName, &routeTable),
 					testAccCheckRouteTableNumberOfRoutes(&routeTable, 5),
@@ -936,8 +930,7 @@ func TestAccEC2RouteTable_multipleRoutes(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "propagating_vgws.#", "0"),
 					resource.TestCheckResourceAttr(resourceName, "route.#", "3"),
 					testAccCheckRouteTableRoute(resourceName, "cidr_block", destinationCidr1, "gateway_id", igwResourceName, "id"),
-					testAccCheckRouteTableRoute(resourceName, "cidr_block", destinationCidr2, "instance_id", instanceResourceName, "id"),
-					testAccCheckRouteTableRoute(resourceName, "ipv6_cidr_block", destinationCidr4, "egress_only_gateway_id", eoigwResourceName, "id"),
+					testAccCheckRouteTableRoute(resourceName, "ipv6_cidr_block", destinationCidr3, "egress_only_gateway_id", eoigwResourceName, "id"),
 					resource.TestCheckResourceAttr(resourceName, "tags.%", "1"),
 					resource.TestCheckResourceAttr(resourceName, "tags.Name", rName),
 				),
@@ -945,8 +938,7 @@ func TestAccEC2RouteTable_multipleRoutes(t *testing.T) {
 			{
 				Config: testAccRouteTableMultipleRoutesConfig(rName,
 					"cidr_block", destinationCidr1, "vpc_peering_connection_id", pcxResourceName,
-					"cidr_block", destinationCidr3, "instance_id", instanceResourceName,
-					"ipv6_cidr_block", destinationCidr4, "egress_only_gateway_id", eoigwResourceName),
+					"ipv6_cidr_block", destinationCidr3, "egress_only_gateway_id", eoigwResourceName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists(resourceName, &routeTable),
 					testAccCheckRouteTableNumberOfRoutes(&routeTable, 5),
@@ -955,17 +947,15 @@ func TestAccEC2RouteTable_multipleRoutes(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "propagating_vgws.#", "0"),
 					resource.TestCheckResourceAttr(resourceName, "route.#", "3"),
 					testAccCheckRouteTableRoute(resourceName, "cidr_block", destinationCidr1, "vpc_peering_connection_id", pcxResourceName, "id"),
-					testAccCheckRouteTableRoute(resourceName, "cidr_block", destinationCidr3, "instance_id", instanceResourceName, "id"),
-					testAccCheckRouteTableRoute(resourceName, "ipv6_cidr_block", destinationCidr4, "egress_only_gateway_id", eoigwResourceName, "id"),
+					testAccCheckRouteTableRoute(resourceName, "ipv6_cidr_block", destinationCidr3, "egress_only_gateway_id", eoigwResourceName, "id"),
 					resource.TestCheckResourceAttr(resourceName, "tags.%", "1"),
 					resource.TestCheckResourceAttr(resourceName, "tags.Name", rName),
 				),
 			},
 			{
 				Config: testAccRouteTableMultipleRoutesConfig(rName,
-					"ipv6_cidr_block", destinationCidr4, "vpc_peering_connection_id", pcxResourceName,
-					"cidr_block", destinationCidr3, "gateway_id", igwResourceName,
-					"cidr_block", destinationCidr2, "instance_id", instanceResourceName),
+					"ipv6_cidr_block", destinationCidr3, "vpc_peering_connection_id", pcxResourceName,
+					"cidr_block", destinationCidr2, "gateway_id", igwResourceName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists(resourceName, &routeTable),
 					testAccCheckRouteTableNumberOfRoutes(&routeTable, 5),
@@ -973,9 +963,8 @@ func TestAccEC2RouteTable_multipleRoutes(t *testing.T) {
 					acctest.CheckResourceAttrAccountID(resourceName, "owner_id"),
 					resource.TestCheckResourceAttr(resourceName, "propagating_vgws.#", "0"),
 					resource.TestCheckResourceAttr(resourceName, "route.#", "3"),
-					testAccCheckRouteTableRoute(resourceName, "ipv6_cidr_block", destinationCidr4, "vpc_peering_connection_id", pcxResourceName, "id"),
-					testAccCheckRouteTableRoute(resourceName, "cidr_block", destinationCidr3, "gateway_id", igwResourceName, "id"),
-					testAccCheckRouteTableRoute(resourceName, "cidr_block", destinationCidr2, "instance_id", instanceResourceName, "id"),
+					testAccCheckRouteTableRoute(resourceName, "ipv6_cidr_block", destinationCidr3, "vpc_peering_connection_id", pcxResourceName, "id"),
+					testAccCheckRouteTableRoute(resourceName, "cidr_block", destinationCidr2, "gateway_id", igwResourceName, "id"),
 					resource.TestCheckResourceAttr(resourceName, "tags.%", "1"),
 					resource.TestCheckResourceAttr(resourceName, "tags.Name", rName),
 				),
@@ -1333,19 +1322,6 @@ resource "aws_instance" "test" {
     Name = %[1]q
   }
 }
-
-resource "aws_route_table" "test" {
-  vpc_id = aws_vpc.test.id
-
-  route {
-    cidr_block  = %[2]q
-    instance_id = aws_instance.test.id
-  }
-
-  tags = {
-    Name = %[1]q
-  }
-}
 `, rName, destinationCidr))
 }
 
@@ -1478,18 +1454,6 @@ func testAccRouteTableConfigNoDestination(rName string) string {
 		acctest.AvailableEC2InstanceTypeForAvailabilityZone("data.aws_availability_zones.available.names[0]", "t3.micro", "t2.micro"),
 		acctest.ConfigLatestAmazonLinuxHvmEbsAmi(),
 		fmt.Sprintf(`
-resource "aws_route_table" "test" {
-  vpc_id = aws_vpc.test.id
-
-  route {
-    instance_id = aws_instance.test.id
-  }
-
-  tags = {
-    Name = %[1]q
-  }
-}
-
 resource "aws_vpc" "test" {
   cidr_block = "10.1.0.0/16"
 
@@ -2092,8 +2056,7 @@ resource "aws_vpc_endpoint" "test" {
 
 func testAccRouteTableMultipleRoutesConfig(rName,
 	destinationAttr1, destinationValue1, targetAttribute1, targetValue1,
-	destinationAttr2, destinationValue2, targetAttribute2, targetValue2,
-	destinationAttr3, destinationValue3, targetAttribute3, targetValue3 string) string {
+	destinationAttr2, destinationValue2, targetAttribute2, targetValue2 string) string {
 	return acctest.ConfigCompose(
 		testAccLatestAmazonNatInstanceAmiConfig(),
 		acctest.ConfigAvailableAZsNoOptInDefaultExclude(),
@@ -2176,12 +2139,6 @@ locals {
       target_attr       = %[8]q
       target_value      = %[9]s.id
     },
-    {
-      destination_attr  = %[10]q
-      destination_value = %[11]q
-      target_attr       = %[12]q
-      target_value      = %[13]s.id
-    }
   ]
 }
 
@@ -2199,7 +2156,6 @@ resource "aws_route_table" "test" {
       carrier_gateway_id        = (route.value["target_attr"] == "carrier_gateway_id") ? route.value["target_value"] : null
       egress_only_gateway_id    = (route.value["target_attr"] == "egress_only_gateway_id") ? route.value["target_value"] : null
       gateway_id                = (route.value["target_attr"] == "gateway_id") ? route.value["target_value"] : null
-      instance_id               = (route.value["target_attr"] == "instance_id") ? route.value["target_value"] : null
       local_gateway_id          = (route.value["target_attr"] == "local_gateway_id") ? route.value["target_value"] : null
       nat_gateway_id            = (route.value["target_attr"] == "nat_gateway_id") ? route.value["target_value"] : null
       network_interface_id      = (route.value["target_attr"] == "network_interface_id") ? route.value["target_value"] : null
@@ -2213,7 +2169,7 @@ resource "aws_route_table" "test" {
     Name = %[1]q
   }
 }
-`, rName, destinationAttr1, destinationValue1, targetAttribute1, targetValue1, destinationAttr2, destinationValue2, targetAttribute2, targetValue2, destinationAttr3, destinationValue3, targetAttribute3, targetValue3))
+`, rName, destinationAttr1, destinationValue1, targetAttribute1, targetValue1, destinationAttr2, destinationValue2, targetAttribute2, targetValue2))
 }
 
 // testAccLatestAmazonNatInstanceAmiConfig returns the configuration for a data source that

@@ -76,7 +76,6 @@ For targets:
 * `carrier_gateway_id` - ID of the Carrier Gateway.
 * `egress_only_gateway_id` - ID of the Egress Only Internet Gateway.
 * `gateway_id` - Internet Gateway ID.
-* `instance_id` - EC2 instance ID.
 * `local_gateway_id` - Local Gateway ID.
 * `nat_gateway_id` - NAT Gateway ID.
 * `network_interface_id` - ID of the elastic network interface (eni) to use.
