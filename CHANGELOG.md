@@ -1,3 +1,7 @@
+## 3.71.0-sylr.1 (January 07, 2022)
+
+* **BREAKING CHANGE**: Remove instance_id in `aws_route_table.route` & `aws_route`
+
 ## 3.71.0 (January 06, 2022)
 
 FEATURES:
