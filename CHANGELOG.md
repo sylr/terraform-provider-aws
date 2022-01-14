@@ -1,3 +1,9 @@
+## 3.72.0-sylr.1 (January 14, 2022)
+
+NOTES:
+
+* **Merge upstream v3.72.0**
+
 ## 3.72.0 (January 13, 2022)
 
 FEATURES:
