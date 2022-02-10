@@ -1,3 +1,9 @@
+## 4.0.0-sylr.1 (February 10, 2022)
+
+NOTES:
+
+* **Merge upstream v4.0.0**
+
 ## 4.0.0 (February 10, 2022)
 
 BREAKING CHANGES:
