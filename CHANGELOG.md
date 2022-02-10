@@ -1,3 +1,9 @@
+## 3.74.1-sylr.1 (February 10, 2022)
+
+NOTES:
+
+* **Merge upstream v3.74.1**
+
 ## 3.74.1 (February 07, 2022)
 
 BUG FIXES:
