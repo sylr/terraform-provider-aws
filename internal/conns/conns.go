@@ -675,7 +675,7 @@ func init() {
 	serviceData[ELBV2] = &ServiceDatum{AWSClientName: "ELBV2", AWSServiceName: elbv2.ServiceName, AWSEndpointsID: elbv2.EndpointsID, AWSServiceID: elbv2.ServiceID, ProviderNameUpper: "ELBV2", HCLKeys: []string{"elbv2"}}
 	serviceData[EMR] = &ServiceDatum{AWSClientName: "EMR", AWSServiceName: emr.ServiceName, AWSEndpointsID: emr.EndpointsID, AWSServiceID: emr.ServiceID, ProviderNameUpper: "EMR", HCLKeys: []string{"emr"}}
 	serviceData[EMRContainers] = &ServiceDatum{AWSClientName: "EMRContainers", AWSServiceName: emrcontainers.ServiceName, AWSEndpointsID: emrcontainers.EndpointsID, AWSServiceID: emrcontainers.ServiceID, ProviderNameUpper: "EMRContainers", HCLKeys: []string{"emrcontainers"}}
-	serviceData[Events] = &ServiceDatum{AWSClientName: "EventBridge", AWSServiceName: eventbridge.ServiceName, AWSEndpointsID: eventbridge.EndpointsID, AWSServiceID: eventbridge.ServiceID, ProviderNameUpper: "Events", HCLKeys: []string{"cloudwatchevents", "eventbridge", "events"}}
+	serviceData[Events] = &ServiceDatum{AWSClientName: "EventBridge", AWSServiceName: eventbridge.ServiceName, AWSEndpointsID: eventbridge.EndpointsID, AWSServiceID: eventbridge.ServiceID, ProviderNameUpper: "Events", HCLKeys: []string{"eventbridge", "cloudwatchevents", "events"}}
 	serviceData[FinSpace] = &ServiceDatum{AWSClientName: "Finspace", AWSServiceName: finspace.ServiceName, AWSEndpointsID: finspace.EndpointsID, AWSServiceID: finspace.ServiceID, ProviderNameUpper: "FinSpace", HCLKeys: []string{"finspace"}}
 	serviceData[FinSpaceData] = &ServiceDatum{AWSClientName: "FinSpaceData", AWSServiceName: finspacedata.ServiceName, AWSEndpointsID: finspacedata.EndpointsID, AWSServiceID: finspacedata.ServiceID, ProviderNameUpper: "FinSpaceData", HCLKeys: []string{"finspacedata"}}
 	serviceData[Firehose] = &ServiceDatum{AWSClientName: "Firehose", AWSServiceName: firehose.ServiceName, AWSEndpointsID: firehose.EndpointsID, AWSServiceID: firehose.ServiceID, ProviderNameUpper: "Firehose", HCLKeys: []string{"firehose"}}
@@ -858,6 +858,7 @@ type Config struct {
 	AccessKey                      string
 	AllowedAccountIds              []string
 	AssumeRole                     *awsbase.AssumeRole
+	CustomCABundle                 string
 	DefaultTagsConfig              *tftags.DefaultConfig
 	EC2MetadataServiceEndpoint     string
 	EC2MetadataServiceEndpointMode string
@@ -1186,20 +1187,11 @@ func (client *AWSClient) RegionalHostname(prefix string) string {
 
 // Client configures and returns a fully initialized AWSClient
 func (c *Config) Client() (interface{}, error) {
-	// Get the auth and region. This can fail if keys/regions were not
-	// specified and we're attempting to use the environment.
-	if !c.SkipRegionValidation {
-		if err := awsbase.ValidateRegion(c.Region); err != nil {
-			return nil, err
-		}
-	}
-
 	awsbaseConfig := awsbase.Config{
 		AccessKey:               c.AccessKey,
 		APNInfo:                 StdUserAgentProducts(c.TerraformVersion),
 		CallerDocumentationURL:  "https://registry.terraform.io/providers/hashicorp/aws",
 		CallerName:              "Terraform AWS Provider",
-		DebugLogging:            true, // Until https://github.com/hashicorp/aws-sdk-go-base/issues/96 is implemented
 		IamEndpoint:             c.Endpoints[IAM],
 		Insecure:                c.Insecure,
 		HTTPProxy:               c.HTTPProxy,
@@ -1220,6 +1212,10 @@ func (c *Config) Client() (interface{}, error) {
 		awsbaseConfig.AssumeRole = c.AssumeRole
 	}
 
+	if c.CustomCABundle != "" {
+		awsbaseConfig.CustomCABundle = c.CustomCABundle
+	}
+
 	if c.EC2MetadataServiceEndpoint != "" {
 		awsbaseConfig.EC2MetadataServiceEndpoint = c.EC2MetadataServiceEndpoint
 		awsbaseConfig.EC2MetadataServiceEndpointMode = c.EC2MetadataServiceEndpointMode
@@ -1233,11 +1229,22 @@ func (c *Config) Client() (interface{}, error) {
 		awsbaseConfig.SharedCredentialsFiles = c.SharedCredentialsFiles
 	}
 
+	if c.STSRegion != "" {
+		awsbaseConfig.StsRegion = c.STSRegion
+	}
+
 	ctx := context.Background()
 	cfg, err := awsbase.GetAwsConfig(ctx, &awsbaseConfig)
 	if err != nil {
 		return nil, fmt.Errorf("error configuring Terraform AWS Provider: %w", err)
 	}
+
+	if !c.SkipRegionValidation {
+		if err := awsbase.ValidateRegion(cfg.Region); err != nil {
+			return nil, err
+		}
+	}
+	c.Region = cfg.Region
 
 	sess, err := awsbasev1.GetSession(&cfg, &awsbaseConfig)
 	if err != nil {
@@ -1532,7 +1539,6 @@ func (c *Config) Client() (interface{}, error) {
 		SSOConn:                           sso.New(sess.Copy(&aws.Config{Endpoint: aws.String(c.Endpoints[SSO])})),
 		SSOOIDCConn:                       ssooidc.New(sess.Copy(&aws.Config{Endpoint: aws.String(c.Endpoints[SSOOIDC])})),
 		StorageGatewayConn:                storagegateway.New(sess.Copy(&aws.Config{Endpoint: aws.String(c.Endpoints[StorageGateway])})),
-		STSConn:                           sts.New(sess.Copy(&aws.Config{Endpoint: aws.String(c.Endpoints[STS])})),
 		SupportConn:                       support.New(sess.Copy(&aws.Config{Endpoint: aws.String(c.Endpoints[Support])})),
 		SWFConn:                           swf.New(sess.Copy(&aws.Config{Endpoint: aws.String(c.Endpoints[SWF])})),
 		SyntheticsConn:                    synthetics.New(sess.Copy(&aws.Config{Endpoint: aws.String(c.Endpoints[Synthetics])})),
@@ -1555,6 +1561,17 @@ func (c *Config) Client() (interface{}, error) {
 		WorkSpacesConn:                    workspaces.New(sess.Copy(&aws.Config{Endpoint: aws.String(c.Endpoints[WorkSpaces])})),
 		XRayConn:                          xray.New(sess.Copy(&aws.Config{Endpoint: aws.String(c.Endpoints[XRay])})),
 	}
+
+	// sts
+	stsConfig := &aws.Config{
+		Endpoint: aws.String(c.Endpoints[STS]),
+	}
+
+	if c.STSRegion != "" {
+		stsConfig.Region = aws.String(c.STSRegion)
+	}
+
+	client.STSConn = sts.New(sess.Copy(stsConfig))
 
 	// "Global" services that require customizations
 	globalAcceleratorConfig := &aws.Config{
