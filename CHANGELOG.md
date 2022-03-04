@@ -40,6 +40,11 @@ BUG FIXES:
 * resource/aws_dms_replication_task: Allow `cdc_start_position` to be computed ([#23328](https://github.com/hashicorp/terraform-provider-aws/issues/23328))
 * resource/aws_ecs_cluster: Fix bug preventing describing clusters in ISO regions ([#23341](https://github.com/hashicorp/terraform-provider-aws/issues/23341))
 
+## 4.3.0-sylr.1 (March 4, 2022)
+
+NOTES:
+
+* **Merge upstream v4.3.0**
 ## 4.2.0 (February 18, 2022)
 
 FEATURES:
