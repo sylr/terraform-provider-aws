@@ -1,4 +1,4 @@
-## 4.7.0 (Unreleased)
+## 4.7.0 (March 24, 2022)
 
 FEATURES:
 
@@ -34,6 +34,12 @@ BUG FIXES:
 * resource/aws_ecs_service: Ensure that `load_balancer` and `service_registries` can be updated in-place ([#23786](https://github.com/hashicorp/terraform-provider-aws/issues/23786))
 * resource/aws_launch_template: Fix `network_interfaces.device_index` and `network_interfaces.network_card_index` of `0` not being set ([#23767](https://github.com/hashicorp/terraform-provider-aws/issues/23767))
 * resource/aws_ssm_maintenance_window_task: Allow creating a window taks without targets. ([#23756](https://github.com/hashicorp/terraform-provider-aws/issues/23756))
+
+## 4.7.0-sylr.1 (March 25, 2022)
+
+NOTES:
+
+* **Merge upstream v4.7.0**
 
 ## 4.6.0 (March 18, 2022)
 
