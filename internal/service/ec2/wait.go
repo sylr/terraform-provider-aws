@@ -31,6 +31,45 @@ const (
 )
 
 const (
+	CapacityReservationActiveTimeout  = 2 * time.Minute
+	CapacityReservationDeletedTimeout = 2 * time.Minute
+)
+
+func WaitCapacityReservationActive(conn *ec2.EC2, id string) (*ec2.CapacityReservation, error) {
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{ec2.CapacityReservationStatePending},
+		Target:  []string{ec2.CapacityReservationStateActive},
+		Refresh: StatusCapacityReservationState(conn, id),
+		Timeout: CapacityReservationActiveTimeout,
+	}
+
+	outputRaw, err := stateConf.WaitForState()
+
+	if output, ok := outputRaw.(*ec2.CapacityReservation); ok {
+		return output, err
+	}
+
+	return nil, err
+}
+
+func WaitCapacityReservationDeleted(conn *ec2.EC2, id string) (*ec2.CapacityReservation, error) {
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{ec2.CapacityReservationStateActive},
+		Target:  []string{},
+		Refresh: StatusCapacityReservationState(conn, id),
+		Timeout: CapacityReservationDeletedTimeout,
+	}
+
+	outputRaw, err := stateConf.WaitForState()
+
+	if output, ok := outputRaw.(*ec2.CapacityReservation); ok {
+		return output, err
+	}
+
+	return nil, err
+}
+
+const (
 	CarrierGatewayAvailableTimeout = 5 * time.Minute
 
 	CarrierGatewayDeletedTimeout = 5 * time.Minute
@@ -668,6 +707,131 @@ func WaitSubnetPrivateDNSHostnameTypeOnLaunchUpdated(conn *ec2.EC2, subnetID str
 	return nil, err
 }
 
+const (
+	TransitGatewayIncorrectStateTimeout = 5 * time.Minute
+)
+
+func WaitTransitGatewayCreated(conn *ec2.EC2, id string, timeout time.Duration) (*ec2.TransitGateway, error) {
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{ec2.TransitGatewayStatePending},
+		Target:  []string{ec2.TransitGatewayStateAvailable},
+		Refresh: StatusTransitGatewayState(conn, id),
+		Timeout: timeout,
+	}
+
+	outputRaw, err := stateConf.WaitForState()
+
+	if output, ok := outputRaw.(*ec2.TransitGateway); ok {
+		return output, err
+	}
+
+	return nil, err
+}
+
+func WaitTransitGatewayDeleted(conn *ec2.EC2, id string, timeout time.Duration) (*ec2.TransitGateway, error) {
+	stateConf := &resource.StateChangeConf{
+		Pending:        []string{ec2.TransitGatewayStateAvailable, ec2.TransitGatewayStateDeleting},
+		Target:         []string{},
+		Refresh:        StatusTransitGatewayState(conn, id),
+		Timeout:        timeout,
+		NotFoundChecks: 1,
+	}
+
+	outputRaw, err := stateConf.WaitForState()
+
+	if output, ok := outputRaw.(*ec2.TransitGateway); ok {
+		return output, err
+	}
+
+	return nil, err
+}
+
+func WaitTransitGatewayUpdated(conn *ec2.EC2, id string, timeout time.Duration) (*ec2.TransitGateway, error) {
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{ec2.TransitGatewayStateModifying},
+		Target:  []string{ec2.TransitGatewayStateAvailable},
+		Refresh: StatusTransitGatewayState(conn, id),
+		Timeout: timeout,
+	}
+
+	outputRaw, err := stateConf.WaitForState()
+
+	if output, ok := outputRaw.(*ec2.TransitGateway); ok {
+		return output, err
+	}
+
+	return nil, err
+}
+
+func WaitTransitGatewayConnectCreated(conn *ec2.EC2, id string, timeout time.Duration) (*ec2.TransitGatewayConnect, error) {
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{ec2.TransitGatewayAttachmentStatePending},
+		Target:  []string{ec2.TransitGatewayAttachmentStateAvailable},
+		Refresh: StatusTransitGatewayConnectState(conn, id),
+		Timeout: timeout,
+	}
+
+	outputRaw, err := stateConf.WaitForState()
+
+	if output, ok := outputRaw.(*ec2.TransitGatewayConnect); ok {
+		return output, err
+	}
+
+	return nil, err
+}
+
+func WaitTransitGatewayConnectDeleted(conn *ec2.EC2, id string, timeout time.Duration) (*ec2.TransitGatewayConnect, error) {
+	stateConf := &resource.StateChangeConf{
+		Pending:        []string{ec2.TransitGatewayAttachmentStateAvailable, ec2.TransitGatewayAttachmentStateDeleting},
+		Target:         []string{},
+		Refresh:        StatusTransitGatewayConnectState(conn, id),
+		Timeout:        timeout,
+		NotFoundChecks: 1,
+	}
+
+	outputRaw, err := stateConf.WaitForState()
+
+	if output, ok := outputRaw.(*ec2.TransitGatewayConnect); ok {
+		return output, err
+	}
+
+	return nil, err
+}
+
+func WaitTransitGatewayConnectPeerCreated(conn *ec2.EC2, id string, timeout time.Duration) (*ec2.TransitGatewayConnectPeer, error) {
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{ec2.TransitGatewayConnectPeerStatePending},
+		Target:  []string{ec2.TransitGatewayConnectPeerStateAvailable},
+		Refresh: StatusTransitGatewayConnectPeerState(conn, id),
+		Timeout: timeout,
+	}
+
+	outputRaw, err := stateConf.WaitForState()
+
+	if output, ok := outputRaw.(*ec2.TransitGatewayConnectPeer); ok {
+		return output, err
+	}
+
+	return nil, err
+}
+
+func WaitTransitGatewayConnectPeerDeleted(conn *ec2.EC2, id string, timeout time.Duration) (*ec2.TransitGatewayConnectPeer, error) {
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{ec2.TransitGatewayConnectPeerStateAvailable, ec2.TransitGatewayConnectPeerStateDeleting},
+		Target:  []string{},
+		Refresh: StatusTransitGatewayConnectPeerState(conn, id),
+		Timeout: timeout,
+	}
+
+	outputRaw, err := stateConf.WaitForState()
+
+	if output, ok := outputRaw.(*ec2.TransitGatewayConnectPeer); ok {
+		return output, err
+	}
+
+	return nil, err
+}
+
 func WaitTransitGatewayMulticastDomainCreated(conn *ec2.EC2, id string, timeout time.Duration) (*ec2.TransitGatewayMulticastDomain, error) {
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{ec2.TransitGatewayMulticastDomainStatePending},
@@ -785,6 +949,45 @@ func WaitTransitGatewayPrefixListReferenceStateUpdated(conn *ec2.EC2, transitGat
 	outputRaw, err := stateConf.WaitForState()
 
 	if output, ok := outputRaw.(*ec2.TransitGatewayPrefixListReference); ok {
+		return output, err
+	}
+
+	return nil, err
+}
+
+const (
+	TransitGatewayRouteCreatedTimeout = 2 * time.Minute
+	TransitGatewayRouteDeletedTimeout = 2 * time.Minute
+)
+
+func WaitTransitGatewayRouteCreated(conn *ec2.EC2, transitGatewayRouteTableID, destination string) (*ec2.TransitGatewayRoute, error) {
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{ec2.TransitGatewayRouteStatePending},
+		Target:  []string{ec2.TransitGatewayRouteStateActive, ec2.TransitGatewayRouteStateBlackhole},
+		Timeout: TransitGatewayRouteCreatedTimeout,
+		Refresh: StatusTransitGatewayRouteState(conn, transitGatewayRouteTableID, destination),
+	}
+
+	outputRaw, err := stateConf.WaitForState()
+
+	if output, ok := outputRaw.(*ec2.TransitGatewayRoute); ok {
+		return output, err
+	}
+
+	return nil, err
+}
+
+func WaitTransitGatewayRouteDeleted(conn *ec2.EC2, transitGatewayRouteTableID, destination string) (*ec2.TransitGatewayRoute, error) {
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{ec2.TransitGatewayRouteStateActive, ec2.TransitGatewayRouteStateBlackhole, ec2.TransitGatewayRouteStateDeleting},
+		Target:  []string{},
+		Timeout: TransitGatewayRouteDeletedTimeout,
+		Refresh: StatusTransitGatewayRouteState(conn, transitGatewayRouteTableID, destination),
+	}
+
+	outputRaw, err := stateConf.WaitForState()
+
+	if output, ok := outputRaw.(*ec2.TransitGatewayRoute); ok {
 		return output, err
 	}
 
