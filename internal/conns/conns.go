@@ -199,6 +199,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/networkfirewall"
 	"github.com/aws/aws-sdk-go/service/networkmanager"
 	"github.com/aws/aws-sdk-go/service/nimblestudio"
+	"github.com/aws/aws-sdk-go/service/opensearchservice"
 	"github.com/aws/aws-sdk-go/service/opsworks"
 	"github.com/aws/aws-sdk-go/service/opsworkscm"
 	"github.com/aws/aws-sdk-go/service/organizations"
@@ -519,6 +520,7 @@ type AWSClient struct {
 	NetworkFirewallConn               *networkfirewall.NetworkFirewall
 	NetworkManagerConn                *networkmanager.NetworkManager
 	NimbleStudioConn                  *nimblestudio.NimbleStudio
+	OpenSearchConn                    *opensearchservice.OpenSearchService
 	OpsWorksCMConn                    *opsworkscm.OpsWorksCM
 	OpsWorksConn                      *opsworks.OpsWorks
 	OrganizationsConn                 *organizations.Organizations
@@ -918,6 +920,7 @@ func (c *Config) Client(ctx context.Context) (interface{}, diag.Diagnostics) {
 		NetworkFirewallConn:               networkfirewall.New(sess.Copy(&aws.Config{Endpoint: aws.String(c.Endpoints[names.NetworkFirewall])})),
 		NetworkManagerConn:                networkmanager.New(sess.Copy(&aws.Config{Endpoint: aws.String(c.Endpoints[names.NetworkManager])})),
 		NimbleStudioConn:                  nimblestudio.New(sess.Copy(&aws.Config{Endpoint: aws.String(c.Endpoints[names.NimbleStudio])})),
+		OpenSearchConn:                    opensearchservice.New(sess.Copy(&aws.Config{Endpoint: aws.String(c.Endpoints[names.OpenSearch])})),
 		OpsWorksCMConn:                    opsworkscm.New(sess.Copy(&aws.Config{Endpoint: aws.String(c.Endpoints[names.OpsWorksCM])})),
 		OpsWorksConn:                      opsworks.New(sess.Copy(&aws.Config{Endpoint: aws.String(c.Endpoints[names.OpsWorks])})),
 		OrganizationsConn:                 organizations.New(sess.Copy(&aws.Config{Endpoint: aws.String(c.Endpoints[names.Organizations])})),
@@ -1227,6 +1230,13 @@ func (c *Config) Client(ctx context.Context) (interface{}, diag.Diagnostics) {
 			}
 		case "DisassociateAdminAccount":
 			if tfawserr.ErrMessageContains(r.Error, fms.ErrCodeInvalidOperationException, "Your AWS Organization is currently onboarding with AWS Firewall Manager and cannot be offboarded.") {
+				r.Retryable = aws.Bool(true)
+			}
+		// System problems can arise during FMS policy updates (maybe also creation),
+		// so we set the following operation as retryable.
+		// Reference: https://github.com/hashicorp/terraform-provider-aws/issues/23946
+		case "PutPolicy":
+			if tfawserr.ErrCodeEquals(r.Error, fms.ErrCodeInternalErrorException) {
 				r.Retryable = aws.Bool(true)
 			}
 		}
