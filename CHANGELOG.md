@@ -1,4 +1,4 @@
-## 4.9.0
+## 4.9.0 (April 07, 2022)
 
 NOTES:
 
@@ -84,6 +84,12 @@ BUG FIXES:
 * resource/aws_redshift_cluster: Correctly use `number_of_nodes` argument value when restoring from snapshot ([#13203](https://github.com/hashicorp/terraform-provider-aws/issues/13203))
 * resource/aws_route: Ensure that resource ID is set in case of wait-for-creation time out ([#24024](https://github.com/hashicorp/terraform-provider-aws/issues/24024))
 * resource/aws_s3_bucket_lifecycle_configuration: Prevent `MalformedXML` errors when handling diffs in `rule.filter` ([#23893](https://github.com/hashicorp/terraform-provider-aws/issues/23893))
+
+## 4.9.0-sylr.1 (April 11, 2022)
+
+NOTES:
+
+* **Merge upstream v4.9.0**
 
 ## 4.8.0 (March 25, 2022)
 
