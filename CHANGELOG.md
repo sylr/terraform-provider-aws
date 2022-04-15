@@ -35,6 +35,12 @@ BUG FIXES:
 * resource/aws_lambda_function_url: Ignore `ResourceConflictException` errors caused by existing `FunctionURLAllowPublicAccess` permission statements ([#24220](https://github.com/hashicorp/terraform-provider-aws/issues/24220))
 * resource/aws_vpc_ipam_scope: Prevent panic when describing IPAM Scopes by ID ([#24188](https://github.com/hashicorp/terraform-provider-aws/issues/24188))
 
+## 4.10.0-sylr.1 (April 14, 2022)
+
+NOTES:
+
+* **Merge upstream v4.10.0**
+
 ## 4.9.0 (April 07, 2022)
 
 NOTES:
