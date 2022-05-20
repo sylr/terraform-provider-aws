@@ -434,7 +434,7 @@ func TestAccVPCRouteTable_ipv4ToVPCEndpoint(t *testing.T) {
 	destinationCidr := "0.0.0.0/0"
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:          func() { acctest.PreCheck(t); testAccPreCheckElbv2GatewayLoadBalancer(t) },
+		PreCheck:          func() { acctest.PreCheck(t); testAccPreCheckELBv2GatewayLoadBalancer(t) },
 		ErrorCheck:        acctest.ErrorCheck(t, ec2.EndpointsID, "elasticloadbalancing"),
 		ProviderFactories: acctest.ProviderFactories,
 		CheckDestroy:      testAccCheckRouteTableDestroy,
@@ -584,7 +584,7 @@ func TestAccVPCRouteTable_vgwRoutePropagation(t *testing.T) {
 		CheckDestroy:      testAccCheckRouteTableDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccRouteTableVgwRoutePropagationConfig(rName, vgwResourceName1),
+				Config: testAccRouteTableConfig_vgwRoutePropagation(rName, vgwResourceName1),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists(resourceName, &routeTable),
 					testAccCheckRouteTableNumberOfRoutes(&routeTable, 1),
@@ -598,7 +598,7 @@ func TestAccVPCRouteTable_vgwRoutePropagation(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccRouteTableVgwRoutePropagationConfig(rName, vgwResourceName2),
+				Config: testAccRouteTableConfig_vgwRoutePropagation(rName, vgwResourceName2),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists(resourceName, &routeTable),
 					testAccCheckRouteTableNumberOfRoutes(&routeTable, 1),
@@ -635,14 +635,14 @@ func TestAccVPCRouteTable_conditionalCIDRBlock(t *testing.T) {
 		CheckDestroy:      testAccCheckRouteDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccRouteTableConditionalIPv4Ipv6Config(rName, destinationCidr, destinationIpv6Cidr, false),
+				Config: testAccRouteTableConfig_conditionalIPv4IPv6(rName, destinationCidr, destinationIpv6Cidr, false),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists(resourceName, &routeTable),
 					testAccCheckRouteTableRoute(resourceName, "cidr_block", destinationCidr, "gateway_id", igwResourceName, "id"),
 				),
 			},
 			{
-				Config: testAccRouteTableConditionalIPv4Ipv6Config(rName, destinationCidr, destinationIpv6Cidr, true),
+				Config: testAccRouteTableConfig_conditionalIPv4IPv6(rName, destinationCidr, destinationIpv6Cidr, true),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists(resourceName, &routeTable),
 					testAccCheckRouteTableRoute(resourceName, "ipv6_cidr_block", destinationIpv6Cidr, "gateway_id", igwResourceName, "id"),
@@ -891,7 +891,7 @@ func TestAccVPCRouteTable_gatewayVPCEndpoint(t *testing.T) {
 				Config: testAccRouteTableGatewayVPCEndpointConfig(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists(resourceName, &routeTable),
-					testAccCheckVpcEndpointExists(vpceResourceName, &vpce),
+					testAccCheckVPCEndpointExists(vpceResourceName, &vpce),
 					testAccCheckRouteTableWaitForVPCEndpointRoute(&routeTable, &vpce),
 					// Refresh the route table once the VPC endpoint route is present.
 					testAccCheckRouteTableExists(resourceName, &routeTable),
@@ -998,7 +998,7 @@ func TestAccVPCRouteTable_prefixListToInternetGateway(t *testing.T) {
 	rName := sdkacctest.RandomWithPrefix(acctest.ResourcePrefix)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:          func() { acctest.PreCheck(t); testAccPreCheckEc2ManagedPrefixList(t) },
+		PreCheck:          func() { acctest.PreCheck(t); testAccPreCheckManagedPrefixList(t) },
 		ErrorCheck:        acctest.ErrorCheck(t, ec2.EndpointsID),
 		ProviderFactories: acctest.ProviderFactories,
 		CheckDestroy:      testAccCheckRouteTableDestroy,
@@ -1303,7 +1303,7 @@ resource "aws_route_table" "test" {
 
 func testAccRouteTableIPv4InstanceConfig(rName, destinationCidr string) string {
 	return acctest.ConfigCompose(
-		testAccLatestAmazonNatInstanceAmiConfig(),
+		testAccLatestAmazonNatInstanceAMIConfig(),
 		acctest.ConfigAvailableAZsNoOptIn(),
 		acctest.AvailableEC2InstanceTypeForAvailabilityZone("data.aws_availability_zones.available.names[0]", "t3.micro", "t2.micro"),
 		fmt.Sprintf(`
@@ -1421,7 +1421,7 @@ resource "aws_route_table" "test" {
 `, rName, destinationCidr)
 }
 
-func testAccRouteTableVgwRoutePropagationConfig(rName, vgwResourceName string) string {
+func testAccRouteTableConfig_vgwRoutePropagation(rName, vgwResourceName string) string {
 	return fmt.Sprintf(`
 resource "aws_vpc" "test" {
   cidr_block = "10.1.0.0/16"
@@ -1788,7 +1788,7 @@ resource "aws_route_table" "test" {
 `, rName, destinationCidr)
 }
 
-func testAccRouteTableConditionalIPv4Ipv6Config(rName, destinationCidr, destinationIpv6Cidr string, ipv6Route bool) string {
+func testAccRouteTableConfig_conditionalIPv4IPv6(rName, destinationCidr, destinationIpv6Cidr string, ipv6Route bool) string {
 	return fmt.Sprintf(`
 resource "aws_vpc" "test" {
   cidr_block = "10.1.0.0/16"
@@ -2070,7 +2070,7 @@ func testAccRouteTableMultipleRoutesConfig(rName,
 	destinationAttr1, destinationValue1, targetAttribute1, targetValue1,
 	destinationAttr2, destinationValue2, targetAttribute2, targetValue2 string) string {
 	return acctest.ConfigCompose(
-		testAccLatestAmazonNatInstanceAmiConfig(),
+		testAccLatestAmazonNatInstanceAMIConfig(),
 		acctest.ConfigAvailableAZsNoOptInDefaultExclude(),
 		acctest.AvailableEC2InstanceTypeForAvailabilityZone("data.aws_availability_zones.available.names[0]", "t3.micro", "t2.micro"),
 		fmt.Sprintf(`
@@ -2184,11 +2184,11 @@ resource "aws_route_table" "test" {
 `, rName, destinationAttr1, destinationValue1, targetAttribute1, targetValue1, destinationAttr2, destinationValue2, targetAttribute2, targetValue2))
 }
 
-// testAccLatestAmazonNatInstanceAmiConfig returns the configuration for a data source that
+// testAccLatestAmazonNatInstanceAMIConfig returns the configuration for a data source that
 // describes the latest Amazon NAT instance AMI.
 // See https://docs.aws.amazon.com/vpc/latest/userguide/VPC_NAT_Instance.html#nat-instance-ami.
 // The data source is named 'amzn-ami-nat-instance'.
-func testAccLatestAmazonNatInstanceAmiConfig() string {
+func testAccLatestAmazonNatInstanceAMIConfig() string {
 	return `
 data "aws_ami" "amzn-ami-nat-instance" {
   most_recent = true

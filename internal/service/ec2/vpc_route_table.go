@@ -167,7 +167,7 @@ func resourceRouteTableCreate(d *schema.ResourceData, meta interface{}) error {
 
 	input := &ec2.CreateRouteTableInput{
 		VpcId:             aws.String(d.Get("vpc_id").(string)),
-		TagSpecifications: ec2TagSpecificationsFromKeyValueTags(tags, ec2.ResourceTypeRouteTable),
+		TagSpecifications: tagSpecificationsFromKeyValueTags(tags, ec2.ResourceTypeRouteTable),
 	}
 
 	log.Printf("[DEBUG] Creating Route Table: %s", input)
@@ -187,7 +187,7 @@ func resourceRouteTableCreate(d *schema.ResourceData, meta interface{}) error {
 		for _, v := range v.(*schema.Set).List() {
 			v := v.(string)
 
-			if err := ec2RouteTableEnableVgwRoutePropagation(conn, d.Id(), v, d.Timeout(schema.TimeoutCreate)); err != nil {
+			if err := routeTableEnableVGWRoutePropagation(conn, d.Id(), v, d.Timeout(schema.TimeoutCreate)); err != nil {
 				return err
 			}
 		}
@@ -197,7 +197,7 @@ func resourceRouteTableCreate(d *schema.ResourceData, meta interface{}) error {
 		for _, v := range v.(*schema.Set).List() {
 			v := v.(map[string]interface{})
 
-			if err := ec2RouteTableAddRoute(conn, d.Id(), v, d.Timeout(schema.TimeoutCreate)); err != nil {
+			if err := routeTableAddRoute(conn, d.Id(), v, d.Timeout(schema.TimeoutCreate)); err != nil {
 				return err
 			}
 		}
@@ -233,7 +233,7 @@ func resourceRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("error setting propagating_vgws: %w", err)
 	}
 
-	if err := d.Set("route", flattenEc2Routes(conn, routeTable.Routes)); err != nil {
+	if err := d.Set("route", flattenRoutes(conn, routeTable.Routes)); err != nil {
 		return fmt.Errorf("error setting route: %w", err)
 	}
 
@@ -276,7 +276,7 @@ func resourceRouteTableUpdate(d *schema.ResourceData, meta interface{}) error {
 		for _, v := range del {
 			v := v.(string)
 
-			if err := ec2RouteTableDisableVgwRoutePropagation(conn, d.Id(), v); err != nil {
+			if err := routeTableDisableVGWRoutePropagation(conn, d.Id(), v); err != nil {
 				return err
 			}
 		}
@@ -284,7 +284,7 @@ func resourceRouteTableUpdate(d *schema.ResourceData, meta interface{}) error {
 		for _, v := range add {
 			v := v.(string)
 
-			if err := ec2RouteTableEnableVgwRoutePropagation(conn, d.Id(), v, d.Timeout(schema.TimeoutCreate)); err != nil {
+			if err := routeTableEnableVGWRoutePropagation(conn, d.Id(), v, d.Timeout(schema.TimeoutCreate)); err != nil {
 				return err
 			}
 		}
@@ -311,7 +311,7 @@ func resourceRouteTableUpdate(d *schema.ResourceData, meta interface{}) error {
 					addRoute = false
 
 					if oldTarget != newTarget {
-						if err := ec2RouteTableUpdateRoute(conn, d.Id(), vNew, d.Timeout(schema.TimeoutUpdate)); err != nil {
+						if err := routeTableUpdateRoute(conn, d.Id(), vNew, d.Timeout(schema.TimeoutUpdate)); err != nil {
 							return err
 						}
 					}
@@ -319,7 +319,7 @@ func resourceRouteTableUpdate(d *schema.ResourceData, meta interface{}) error {
 			}
 
 			if addRoute {
-				if err := ec2RouteTableAddRoute(conn, d.Id(), vNew, d.Timeout(schema.TimeoutUpdate)); err != nil {
+				if err := routeTableAddRoute(conn, d.Id(), vNew, d.Timeout(schema.TimeoutUpdate)); err != nil {
 					return err
 				}
 			}
@@ -343,7 +343,7 @@ func resourceRouteTableUpdate(d *schema.ResourceData, meta interface{}) error {
 			}
 
 			if delRoute {
-				if err := ec2RouteTableDeleteRoute(conn, d.Id(), vOld, d.Timeout(schema.TimeoutUpdate)); err != nil {
+				if err := routeTableDeleteRoute(conn, d.Id(), vOld, d.Timeout(schema.TimeoutUpdate)); err != nil {
 					return err
 				}
 			}
@@ -374,7 +374,7 @@ func resourceRouteTableDelete(d *schema.ResourceData, meta interface{}) error {
 	for _, v := range routeTable.Associations {
 		v := aws.StringValue(v.RouteTableAssociationId)
 
-		if err := ec2RouteTableAssociationDelete(conn, v); err != nil {
+		if err := routeTableAssociationDelete(conn, v); err != nil {
 			return err
 		}
 	}
@@ -384,7 +384,7 @@ func resourceRouteTableDelete(d *schema.ResourceData, meta interface{}) error {
 		RouteTableId: aws.String(d.Id()),
 	})
 
-	if tfawserr.ErrCodeEquals(err, ErrCodeInvalidRouteTableIDNotFound) {
+	if tfawserr.ErrCodeEquals(err, errCodeInvalidRouteTableIDNotFound) {
 		return nil
 	}
 
@@ -465,8 +465,8 @@ func resourceRouteTableHash(v interface{}) int {
 	return create.StringHashcode(buf.String())
 }
 
-// ec2RouteTableAddRoute adds a route to the specified route table.
-func ec2RouteTableAddRoute(conn *ec2.EC2, routeTableID string, tfMap map[string]interface{}, timeout time.Duration) error {
+// routeTableAddRoute adds a route to the specified route table.
+func routeTableAddRoute(conn *ec2.EC2, routeTableID string, tfMap map[string]interface{}, timeout time.Duration) error {
 	if err := validNestedExactlyOneOf(tfMap, routeTableValidDestinations); err != nil {
 		return fmt.Errorf("error creating route: %w", err)
 	}
@@ -489,7 +489,7 @@ func ec2RouteTableAddRoute(conn *ec2.EC2, routeTableID string, tfMap map[string]
 		return fmt.Errorf("error creating Route: unexpected route destination attribute: %q", destinationAttributeKey)
 	}
 
-	input := expandEc2CreateRouteInput(tfMap)
+	input := expandCreateRouteInput(tfMap)
 
 	if input == nil {
 		return nil
@@ -503,8 +503,8 @@ func ec2RouteTableAddRoute(conn *ec2.EC2, routeTableID string, tfMap map[string]
 		func() (interface{}, error) {
 			return conn.CreateRoute(input)
 		},
-		ErrCodeInvalidParameterException,
-		ErrCodeInvalidTransitGatewayIDNotFound,
+		errCodeInvalidParameterException,
+		errCodeInvalidTransitGatewayIDNotFound,
 	)
 
 	if err != nil {
@@ -520,8 +520,8 @@ func ec2RouteTableAddRoute(conn *ec2.EC2, routeTableID string, tfMap map[string]
 	return nil
 }
 
-// ec2RouteTableDeleteRoute deletes a route from the specified route table.
-func ec2RouteTableDeleteRoute(conn *ec2.EC2, routeTableID string, tfMap map[string]interface{}, timeout time.Duration) error {
+// routeTableDeleteRoute deletes a route from the specified route table.
+func routeTableDeleteRoute(conn *ec2.EC2, routeTableID string, tfMap map[string]interface{}, timeout time.Duration) error {
 	destinationAttributeKey, destination := routeTableRouteDestinationAttribute(tfMap)
 
 	input := &ec2.DeleteRouteInput{
@@ -547,7 +547,7 @@ func ec2RouteTableDeleteRoute(conn *ec2.EC2, routeTableID string, tfMap map[stri
 	log.Printf("[DEBUG] Deleting Route: %s", input)
 	_, err := conn.DeleteRoute(input)
 
-	if tfawserr.ErrCodeEquals(err, ErrCodeInvalidRouteNotFound) {
+	if tfawserr.ErrCodeEquals(err, errCodeInvalidRouteNotFound) {
 		return nil
 	}
 
@@ -564,8 +564,8 @@ func ec2RouteTableDeleteRoute(conn *ec2.EC2, routeTableID string, tfMap map[stri
 	return nil
 }
 
-// ec2RouteTableUpdateRoute updates a route in the specified route table.
-func ec2RouteTableUpdateRoute(conn *ec2.EC2, routeTableID string, tfMap map[string]interface{}, timeout time.Duration) error {
+// routeTableUpdateRoute updates a route in the specified route table.
+func routeTableUpdateRoute(conn *ec2.EC2, routeTableID string, tfMap map[string]interface{}, timeout time.Duration) error {
 	if err := validNestedExactlyOneOf(tfMap, routeTableValidDestinations); err != nil {
 		return fmt.Errorf("error updating route: %w", err)
 	}
@@ -588,7 +588,7 @@ func ec2RouteTableUpdateRoute(conn *ec2.EC2, routeTableID string, tfMap map[stri
 		return fmt.Errorf("error creating Route: unexpected route destination attribute: %q", destinationAttributeKey)
 	}
 
-	input := expandEc2ReplaceRouteInput(tfMap)
+	input := expandReplaceRouteInput(tfMap)
 
 	if input == nil {
 		return nil
@@ -612,9 +612,9 @@ func ec2RouteTableUpdateRoute(conn *ec2.EC2, routeTableID string, tfMap map[stri
 	return nil
 }
 
-// ec2RouteTableDisableVgwRoutePropagation attempts to disable VGW route propagation.
+// routeTableDisableVGWRoutePropagation attempts to disable VGW route propagation.
 // Any error is returned.
-func ec2RouteTableDisableVgwRoutePropagation(conn *ec2.EC2, routeTableID, gatewayID string) error {
+func routeTableDisableVGWRoutePropagation(conn *ec2.EC2, routeTableID, gatewayID string) error {
 	input := &ec2.DisableVgwRoutePropagationInput{
 		GatewayId:    aws.String(gatewayID),
 		RouteTableId: aws.String(routeTableID),
@@ -630,10 +630,10 @@ func ec2RouteTableDisableVgwRoutePropagation(conn *ec2.EC2, routeTableID, gatewa
 	return nil
 }
 
-// ec2RouteTableEnableVgwRoutePropagation attempts to enable VGW route propagation.
+// routeTableEnableVGWRoutePropagation attempts to enable VGW route propagation.
 // The specified eventual consistency timeout is respected.
 // Any error is returned.
-func ec2RouteTableEnableVgwRoutePropagation(conn *ec2.EC2, routeTableID, gatewayID string, timeout time.Duration) error {
+func routeTableEnableVGWRoutePropagation(conn *ec2.EC2, routeTableID, gatewayID string, timeout time.Duration) error {
 	input := &ec2.EnableVgwRoutePropagationInput{
 		GatewayId:    aws.String(gatewayID),
 		RouteTableId: aws.String(routeTableID),
@@ -645,7 +645,7 @@ func ec2RouteTableEnableVgwRoutePropagation(conn *ec2.EC2, routeTableID, gateway
 		func() (interface{}, error) {
 			return conn.EnableVgwRoutePropagation(input)
 		},
-		ErrCodeGatewayNotAttached,
+		errCodeGatewayNotAttached,
 	)
 
 	if err != nil {
@@ -655,7 +655,7 @@ func ec2RouteTableEnableVgwRoutePropagation(conn *ec2.EC2, routeTableID, gateway
 	return nil
 }
 
-func expandEc2CreateRouteInput(tfMap map[string]interface{}) *ec2.CreateRouteInput {
+func expandCreateRouteInput(tfMap map[string]interface{}) *ec2.CreateRouteInput {
 	if tfMap == nil {
 		return nil
 	}
@@ -717,7 +717,7 @@ func expandEc2CreateRouteInput(tfMap map[string]interface{}) *ec2.CreateRouteInp
 	return apiObject
 }
 
-func expandEc2ReplaceRouteInput(tfMap map[string]interface{}) *ec2.ReplaceRouteInput {
+func expandReplaceRouteInput(tfMap map[string]interface{}) *ec2.ReplaceRouteInput {
 	if tfMap == nil {
 		return nil
 	}
@@ -779,7 +779,7 @@ func expandEc2ReplaceRouteInput(tfMap map[string]interface{}) *ec2.ReplaceRouteI
 	return apiObject
 }
 
-func flattenEc2Route(apiObject *ec2.Route) map[string]interface{} {
+func flattenRoute(apiObject *ec2.Route) map[string]interface{} {
 	if apiObject == nil {
 		return nil
 	}
@@ -841,7 +841,7 @@ func flattenEc2Route(apiObject *ec2.Route) map[string]interface{} {
 	return tfMap
 }
 
-func flattenEc2Routes(conn *ec2.EC2, apiObjects []*ec2.Route) []interface{} {
+func flattenRoutes(conn *ec2.EC2, apiObjects []*ec2.Route) []interface{} {
 	if len(apiObjects) == 0 {
 		return nil
 	}
@@ -879,7 +879,7 @@ func flattenEc2Routes(conn *ec2.EC2, apiObjects []*ec2.Route) []interface{} {
 			}
 		}
 
-		tfList = append(tfList, flattenEc2Route(apiObject))
+		tfList = append(tfList, flattenRoute(apiObject))
 	}
 
 	return tfList
