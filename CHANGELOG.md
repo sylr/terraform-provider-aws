@@ -4,6 +4,12 @@ BUG FIXES:
 
 * resource/aws_default_vpc_dhcp_options: Fix `missing expected [` error introduced in [v4.20.0](https://github.com/hashicorp/terraform-provider-aws/blob/main/CHANGELOG.md#4200-june-23-2022) ([#25562](https://github.com/hashicorp/terraform-provider-aws/issues/25562))
 
+## 4.21.0-sylr.1 (June 25, 2022)
+
+NOTES:
+
+* **Merge upstream v4.21.0**
+
 ## 4.20.0 (June 23, 2022)
 
 FEATURES:
