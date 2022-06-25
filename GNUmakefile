@@ -14,6 +14,10 @@ ifneq ($(origin TESTS), undefined)
 	RUNARGS = -run='$(TESTS)'
 endif
 
+ifneq ($(origin SWEEPERS), undefined)
+	SWEEPARGS = -sweep-run='$(SWEEPERS)'
+endif
+
 default: build
 
 build: fmtcheck
@@ -27,8 +31,12 @@ gen:
 	rm -f internal/service/**/*_gen.go
 	rm -f internal/sweep/sweep_test.go
 	rm -f names/*_gen.go
+	rm -f names/caps.md
 	rm -f website/allowed-subcategories.txt
 	rm -f website/docs/guides/custom-service-endpoints.html.md
+	rm -f .semgrep-caps-aws-ec2.yml
+	rm -f .semgrep-configs.yml
+	rm -f .semgrep-service-name*.yml
 	go generate ./...
 
 sweep:
@@ -163,7 +171,7 @@ website-link-check:
 	@scripts/markdown-link-check.sh
 
 website-link-check-ghrc:
-	@LINK_CHECK_CONTAINER="ghcr.io/tcort/markdown-link-check:stable" scripts/markdown-link-check.sh	
+	@LINK_CHECK_CONTAINER="ghcr.io/tcort/markdown-link-check:stable" scripts/markdown-link-check.sh
 
 website-lint:
 	@echo "==> Checking website against linters..."
@@ -190,5 +198,15 @@ website-lint-fix:
 semgrep:
 	@echo "==> Running Semgrep static analysis..."
 	@docker run --rm --volume "${PWD}:/src" returntocorp/semgrep --config .semgrep.yml
+
+semall:
+	@echo "==> Running Semgrep checks locally (must have semgrep installed)..."
+	@semgrep -c .semgrep.yml
+	@semgrep -c .semgrep-caps-aws-ec2.yml
+	@semgrep -c .semgrep-configs.yml
+	@semgrep -c .semgrep-service-name0.yml
+	@semgrep -c .semgrep-service-name1.yml
+	@semgrep -c .semgrep-service-name2.yml
+	@semgrep -c .semgrep-service-name3.yml
 
 .PHONY: providerlint build gen generate-changelog gh-workflows-lint golangci-lint sweep test testacc fmt fmtcheck lint tools test-compile website-link-check website-lint website-lint-fix depscheck docscheck semgrep

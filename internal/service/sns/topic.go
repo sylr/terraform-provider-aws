@@ -227,7 +227,7 @@ func resourceTopicCreate(d *schema.ResourceData, meta interface{}) error {
 		Name: aws.String(name),
 	}
 
-	attributes, err := topicAttributeMap.ResourceDataToApiAttributesCreate(d)
+	attributes, err := topicAttributeMap.ResourceDataToAPIAttributesCreate(d)
 
 	if err != nil {
 		return err
@@ -250,7 +250,7 @@ func resourceTopicCreate(d *schema.ResourceData, meta interface{}) error {
 	output, err := conn.CreateTopic(input)
 
 	// Some partitions may not support tag-on-create
-	if input.Tags != nil && verify.CheckISOErrorTagsUnsupported(err) {
+	if input.Tags != nil && verify.CheckISOErrorTagsUnsupported(conn.PartitionID, err) {
 		log.Printf("[WARN] failed creating SNS Topic (%s) with tags: %s. Trying create without tags.", name, err)
 		input.Tags = nil
 		output, err = conn.CreateTopic(input)
@@ -272,7 +272,7 @@ func resourceTopicCreate(d *schema.ResourceData, meta interface{}) error {
 	if input.Tags == nil && len(tags) > 0 {
 		err := UpdateTags(conn, d.Id(), nil, tags)
 
-		if v, ok := d.GetOk("tags"); (!ok || len(v.(map[string]interface{})) == 0) && verify.CheckISOErrorTagsUnsupported(err) {
+		if v, ok := d.GetOk("tags"); (!ok || len(v.(map[string]interface{})) == 0) && verify.CheckISOErrorTagsUnsupported(conn.PartitionID, err) {
 			// if default tags only, log and continue (i.e., should error if explicitly setting tags and they can't be)
 			log.Printf("[WARN] failed adding tags after create for SNS Topic (%s): %s", d.Id(), err)
 			return resourceTopicRead(d, meta)
@@ -303,7 +303,7 @@ func resourceTopicRead(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("error reading SNS Topic (%s): %w", d.Id(), err)
 	}
 
-	err = topicAttributeMap.ApiAttributesToResourceData(attributes, d)
+	err = topicAttributeMap.APIAttributesToResourceData(attributes, d)
 
 	if err != nil {
 		return err
@@ -325,7 +325,7 @@ func resourceTopicRead(d *schema.ResourceData, meta interface{}) error {
 
 	tags, err := ListTags(conn, d.Id())
 
-	if verify.CheckISOErrorTagsUnsupported(err) {
+	if verify.CheckISOErrorTagsUnsupported(conn.PartitionID, err) {
 		// ISO partitions may not support tagging, giving error
 		log.Printf("[WARN] failed listing tags for SNS Topic (%s): %s", d.Id(), err)
 		return nil
@@ -353,7 +353,7 @@ func resourceTopicUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*conns.AWSClient).SNSConn
 
 	if d.HasChangesExcept("tags", "tags_all") {
-		attributes, err := topicAttributeMap.ResourceDataToApiAttributesUpdate(d)
+		attributes, err := topicAttributeMap.ResourceDataToAPIAttributesUpdate(d)
 
 		if err != nil {
 			return err
@@ -371,7 +371,7 @@ func resourceTopicUpdate(d *schema.ResourceData, meta interface{}) error {
 
 		err := UpdateTags(conn, d.Id(), o, n)
 
-		if verify.CheckISOErrorTagsUnsupported(err) {
+		if verify.CheckISOErrorTagsUnsupported(conn.PartitionID, err) {
 			// ISO partitions may not support tagging, giving error
 			log.Printf("[WARN] failed updating tags for SNS Topic (%s): %s", d.Id(), err)
 			return resourceTopicRead(d, meta)

@@ -58,8 +58,8 @@ const (
 )
 
 const RFC3339RegexPattern = `^[0-9]{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])[Tt]([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\.[0-9]+)?([Zz]|([+-]([01][0-9]|2[0-3]):[0-5][0-9]))$`
-const awsRegionRegexp = `[a-z]{2}(-[a-z]+)+-\d`
-const awsAccountIDRegexp = `(aws|aws-managed|\d{12})`
+const regionRegexp = `[a-z]{2}(-[a-z]+)+-\d`
+const accountIDRegexp = `(aws|aws-managed|\d{12})`
 
 // Skip implements a wrapper for (*testing.T).Skip() to prevent unused linting reports
 //
@@ -193,7 +193,7 @@ func PreCheck(t *testing.T) {
 	// Since we are outside the scope of the Terraform configuration we must
 	// call Configure() to properly initialize the provider configuration.
 	testAccProviderConfigure.Do(func() {
-		conns.FailIfAllEnvVarEmpty(t, []string{conns.EnvVarProfile, conns.EnvVarAccessKeyId, conns.EnvVarContainerCredentialsFullUri}, "credentials for running acceptance testing")
+		conns.FailIfAllEnvVarEmpty(t, []string{conns.EnvVarProfile, conns.EnvVarAccessKeyId, conns.EnvVarContainerCredentialsFullURI}, "credentials for running acceptance testing")
 
 		if os.Getenv(conns.EnvVarAccessKeyId) != "" {
 			conns.FailIfEnvVarEmpty(t, conns.EnvVarSecretAccessKey, "static credentials value when using "+conns.EnvVarAccessKeyId)
@@ -459,9 +459,9 @@ func MatchResourceAttrGlobalARN(resourceName, attributeName, arnService string, 
 func CheckResourceAttrRegionalARNIgnoreRegionAndAccount(resourceName, attributeName, arnService, arnResource string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		arnRegexp := arn.ARN{
-			AccountID: awsAccountIDRegexp,
+			AccountID: accountIDRegexp,
 			Partition: Partition(),
-			Region:    awsRegionRegexp,
+			Region:    regionRegexp,
 			Resource:  arnResource,
 			Service:   arnService,
 		}.String()
@@ -1199,7 +1199,7 @@ provider "aws" {
 `, os.Getenv(conns.EnvVarAccAssumeRoleARN), policy)
 }
 
-const testAccCheckAWSProviderConfigAssumeRoleEmpty = `
+const testAccProviderConfig_assumeRoleEmpty = `
 provider "aws" {
   assume_role {
   }
@@ -1668,10 +1668,10 @@ data "aws_ec2_instance_type_offering" "%[1]s" {
 `, name, strings.Join(preferredInstanceTypes, "\", \""))
 }
 
-// ConfigLatestAmazonLinuxHvmEbsAmi returns the configuration for a data source that
+// ConfigLatestAmazonLinuxHVMEBSAMI returns the configuration for a data source that
 // describes the latest Amazon Linux AMI using HVM virtualization and an EBS root device.
 // The data source is named 'amzn-ami-minimal-hvm-ebs'.
-func ConfigLatestAmazonLinuxHvmEbsAmi() string {
+func ConfigLatestAmazonLinuxHVMEBSAMI() string {
 	return `
 data "aws_ami" "amzn-ami-minimal-hvm-ebs" {
   most_recent = true
@@ -1688,6 +1688,44 @@ data "aws_ami" "amzn-ami-minimal-hvm-ebs" {
   }
 }
 `
+}
+
+func configLatestAmazonLinux2HVMEBSAMI(architecture string) string {
+	return fmt.Sprintf(`
+data "aws_ami" "amzn2-ami-minimal-hvm-ebs-%[1]s" {
+  most_recent = true
+  owners      = ["amazon"]
+
+  filter {
+    name   = "name"
+    values = ["amzn2-ami-minimal-hvm-*"]
+  }
+
+  filter {
+    name   = "root-device-type"
+    values = ["ebs"]
+  }
+
+  filter {
+    name   = "architecture"
+    values = [%[1]q]
+  }
+}
+`, architecture)
+}
+
+// ConfigLatestAmazonLinux2HVMEBSX8664AMI returns the configuration for a data source that
+// describes the latest Amazon Linux 2 x86_64 AMI using HVM virtualization and an EBS root device.
+// The data source is named 'amzn2-ami-minimal-hvm-ebs-x86_64'.
+func ConfigLatestAmazonLinux2HVMEBSX8664AMI() string {
+	return configLatestAmazonLinux2HVMEBSAMI(ec2.ArchitectureValuesX8664)
+}
+
+// ConfigLatestAmazonLinux2HVMEBSARM64AMI returns the configuration for a data source that
+// describes the latest Amazon Linux 2 arm64 AMI using HVM virtualization and an EBS root device.
+// The data source is named 'amzn2-ami-minimal-hvm-ebs-arm64'.
+func ConfigLatestAmazonLinux2HVMEBSARM64AMI() string {
+	return configLatestAmazonLinux2HVMEBSAMI(ec2.ArchitectureValuesArm64)
 }
 
 func ConfigLambdaBase(policyName, roleName, sgName string) string {
@@ -1826,9 +1864,9 @@ resource "aws_security_group" "sg_for_lambda" {
 `, policyName, roleName, sgName)
 }
 
-func ConfigVpcWithSubnets(rName string, subnetCount int) string {
+func ConfigVPCWithSubnets(rName string, subnetCount int) string {
 	return ConfigCompose(
-		ConfigAvailableAZsNoOptIn(),
+		ConfigAvailableAZsNoOptInDefaultExclude(),
 		fmt.Sprintf(`
 resource "aws_vpc" "test" {
   cidr_block = "10.0.0.0/16"

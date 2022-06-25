@@ -121,7 +121,7 @@ func ResourceCostCategory() *schema.Resource {
 										ValidateFunc: validation.StringInSlice(costexplorer.CostCategorySplitChargeRuleParameterType_Values(), false),
 									},
 									"values": {
-										Type:     schema.TypeSet,
+										Type:     schema.TypeList,
 										Optional: true,
 										MinItems: 1,
 										MaxItems: 500,
@@ -129,11 +129,10 @@ func ResourceCostCategory() *schema.Resource {
 											Type:         schema.TypeString,
 											ValidateFunc: validation.StringLenBetween(0, 1024),
 										},
-										Set: schema.HashString,
 									},
 								},
 							},
-							Set: costExplorerCostCategorySplitChargesParameter,
+							Set: costCategorySplitChargesParameter,
 						},
 						"source": {
 							Type:         schema.TypeString,
@@ -153,7 +152,7 @@ func ResourceCostCategory() *schema.Resource {
 						},
 					},
 				},
-				Set: costExplorerCostCategorySplitCharges,
+				Set: costCategorySplitCharges,
 			},
 		},
 	}
@@ -694,8 +693,8 @@ func expandCostCategorySplitChargeRuleParameter(tfMap map[string]interface{}) *c
 	}
 
 	apiObject := &costexplorer.CostCategorySplitChargeRuleParameter{
-		Type:   aws.String(tfMap["method"].(string)),
-		Values: flex.ExpandStringSet(tfMap["values"].(*schema.Set)),
+		Type:   aws.String(tfMap["type"].(string)),
+		Values: flex.ExpandStringList(tfMap["values"].([]interface{})),
 	}
 
 	return apiObject
@@ -975,7 +974,7 @@ func flattenCostCategorySplitChargeRules(apiObjects []*costexplorer.CostCategory
 	return tfList
 }
 
-func costExplorerCostCategorySplitCharges(v interface{}) int {
+func costCategorySplitCharges(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 	buf.WriteString(m["method"].(string))
@@ -985,10 +984,10 @@ func costExplorerCostCategorySplitCharges(v interface{}) int {
 	return schema.HashString(buf.String())
 }
 
-func costExplorerCostCategorySplitChargesParameter(v interface{}) int {
+func costCategorySplitChargesParameter(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 	buf.WriteString(m["type"].(string))
-	buf.WriteString(fmt.Sprintf("%+v", m["values"].(*schema.Set)))
+	buf.WriteString(fmt.Sprintf("%+v", m["values"].([]interface{})))
 	return schema.HashString(buf.String())
 }

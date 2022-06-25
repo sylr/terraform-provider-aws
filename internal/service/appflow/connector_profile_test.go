@@ -34,7 +34,7 @@ func TestAccAppFlowConnectorProfile_basic(t *testing.T) {
 		CheckDestroy:      testAccCheckConnectorProfileDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccConfigConnectorProfile_basic(rName),
+				Config: testAccConnectorProfileConfig_basic(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckConnectorProfileExists(resourceName, &connectorProfiles),
 					acctest.MatchResourceAttrRegionalARN(resourceName, "arn", "appflow", regexp.MustCompile(`connectorprofile/.+`)),
@@ -73,13 +73,13 @@ func TestAccAppFlowConnectorProfile_update(t *testing.T) {
 		CheckDestroy:      testAccCheckConnectorProfileDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccConfigConnectorProfile_basic(rName),
+				Config: testAccConnectorProfileConfig_basic(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckConnectorProfileExists(resourceName, &connectorProfiles),
 				),
 			},
 			{
-				Config: testAccConfigConnectorProfile_update(rName, testPrefix),
+				Config: testAccConnectorProfileConfig_update(rName, testPrefix),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckConnectorProfileExists(resourceName, &connectorProfiles),
 					resource.TestCheckResourceAttr(resourceName, "connector_profile_config.0.connector_profile_properties.0.redshift.0.bucket_prefix", testPrefix),
@@ -106,7 +106,7 @@ func TestAccAppFlowConnectorProfile_disappears(t *testing.T) {
 		CheckDestroy:      testAccCheckConnectorProfileDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccConfigConnectorProfile_basic(rName),
+				Config: testAccConnectorProfileConfig_basic(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckConnectorProfileExists(resourceName, &connectorProfiles),
 					acctest.CheckResourceDisappears(acctest.Provider, tfappflow.ResourceConnectorProfile(), resourceName),
@@ -125,7 +125,7 @@ func testAccCheckConnectorProfileDestroy(s *terraform.State) error {
 			continue
 		}
 
-		_, err := tfappflow.FindConnectorProfileByArn(context.Background(), conn, rs.Primary.ID)
+		_, err := tfappflow.FindConnectorProfileByARN(context.Background(), conn, rs.Primary.ID)
 
 		if tfresource.NotFound(err) {
 			continue
@@ -278,7 +278,7 @@ resource "aws_redshift_cluster" "test" {
 `, connectorProfileName, redshiftPassword, redshiftUsername))
 }
 
-func testAccConfigConnectorProfile_basic(connectorProfileName string) string {
+func testAccConnectorProfileConfig_basic(connectorProfileName string) string {
 	const redshiftPassword = "testPassword123!"
 	const redshiftUsername = "testusername"
 
@@ -317,7 +317,7 @@ resource "aws_appflow_connector_profile" "test" {
 	)
 }
 
-func testAccConfigConnectorProfile_update(connectorProfileName string, bucketPrefix string) string {
+func testAccConnectorProfileConfig_update(connectorProfileName string, bucketPrefix string) string {
 	const redshiftPassword = "testPassword123!"
 	const redshiftUsername = "testusername"
 

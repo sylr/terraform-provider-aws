@@ -28,7 +28,7 @@ func TestAccIPAMPoolAllocation_ipv4Basic(t *testing.T) {
 		CheckDestroy:      testAccCheckIPAMPoolAllocationDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccIPAMPoolAllocationConfig_ipv4(cidr),
+				Config: testAccIPAMPoolCIDRAllocationConfig_ipv4(cidr),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckIPAMAllocationExists(resourceName, &allocation),
 					resource.TestCheckResourceAttr(resourceName, "cidr", cidr),
@@ -58,7 +58,7 @@ func TestAccIPAMPoolAllocation_ipv4BasicNetmask(t *testing.T) {
 		CheckDestroy:      testAccCheckIPAMPoolAllocationDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccIPAMPoolAllocationConfig_ipv4Netmask(netmask),
+				Config: testAccIPAMPoolCIDRAllocationConfig_ipv4Netmask(netmask),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckIPAMAllocationExists(resourceName, &allocation),
 					testAccCheckIPAMCIDRPrefix(&allocation, netmask),
@@ -87,7 +87,7 @@ func TestAccIPAMPoolAllocation_ipv4DisallowedCIDR(t *testing.T) {
 		CheckDestroy:      nil,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccIPAMPoolAllocationConfig_ipv4DisallowedCIDR(netmaskLength, disallowedCidr),
+				Config: testAccIPAMPoolCIDRAllocationConfig_ipv4Disallowed(netmaskLength, disallowedCidr),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "cidr", expectedCidr),
 					resource.TestCheckResourceAttr(resourceName, "disallowed_cidrs.#", "1"),
@@ -96,6 +96,48 @@ func TestAccIPAMPoolAllocation_ipv4DisallowedCIDR(t *testing.T) {
 					resource.TestCheckResourceAttrPair(resourceName, "ipam_pool_id", "aws_vpc_ipam_pool.test", "id"),
 					resource.TestCheckResourceAttr(resourceName, "netmask_length", netmaskLength),
 				),
+			},
+		},
+	})
+}
+
+func TestAccIPAMPoolAllocation_multiple(t *testing.T) {
+	var allocation1, allocation2 ec2.IpamPoolAllocation
+	resourceName := "aws_vpc_ipam_pool_cidr_allocation.test"
+	resourceName2 := "aws_vpc_ipam_pool_cidr_allocation.test2"
+	cidr1 := "172.2.0.0/28"
+	cidr2 := "10.1.0.0/28"
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:          func() { acctest.PreCheck(t); testAccIPAMPreCheck(t) },
+		ErrorCheck:        acctest.ErrorCheck(t, ec2.EndpointsID),
+		ProviderFactories: acctest.ProviderFactories,
+		CheckDestroy:      testAccCheckIPAMPoolAllocationDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccIPAMPoolCIDRAllocationConfig_multiple(cidr1, cidr2),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckIPAMAllocationExists(resourceName, &allocation1),
+					testAccCheckIPAMAllocationExists(resourceName2, &allocation2),
+					resource.TestCheckResourceAttr(resourceName, "cidr", cidr1),
+					resource.TestMatchResourceAttr(resourceName, "id", regexp.MustCompile(`^ipam-pool-alloc-[\da-f]+_ipam-pool(-[\da-f]+)$`)),
+					resource.TestMatchResourceAttr(resourceName, "ipam_pool_allocation_id", regexp.MustCompile(`^ipam-pool-alloc-[\da-f]+$`)),
+					resource.TestCheckResourceAttrPair(resourceName, "ipam_pool_id", "aws_vpc_ipam_pool.test", "id"),
+					resource.TestCheckResourceAttr(resourceName2, "cidr", cidr2),
+					resource.TestMatchResourceAttr(resourceName2, "id", regexp.MustCompile(`^ipam-pool-alloc-[\da-f]+_ipam-pool(-[\da-f]+)$`)),
+					resource.TestMatchResourceAttr(resourceName2, "ipam_pool_allocation_id", regexp.MustCompile(`^ipam-pool-alloc-[\da-f]+$`)),
+					resource.TestCheckResourceAttrPair(resourceName2, "ipam_pool_id", "aws_vpc_ipam_pool.test", "id"),
+				),
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
+				ResourceName:      resourceName2,
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
@@ -176,7 +218,7 @@ resource "aws_vpc_ipam_pool_cidr" "test" {
 }
 `
 
-func testAccIPAMPoolAllocationConfig_ipv4(cidr string) string {
+func testAccIPAMPoolCIDRAllocationConfig_ipv4(cidr string) string {
 	return acctest.ConfigCompose(
 		testAccIPAMPoolCIDRConfig_privateBase,
 		fmt.Sprintf(`
@@ -190,7 +232,7 @@ resource "aws_vpc_ipam_pool_cidr_allocation" "test" {
 `, cidr))
 }
 
-func testAccIPAMPoolAllocationConfig_ipv4Netmask(netmask string) string {
+func testAccIPAMPoolCIDRAllocationConfig_ipv4Netmask(netmask string) string {
 	return acctest.ConfigCompose(
 		testAccIPAMPoolCIDRConfig_privateBase,
 		fmt.Sprintf(`
@@ -204,7 +246,7 @@ resource "aws_vpc_ipam_pool_cidr_allocation" "test" {
 `, netmask))
 }
 
-func testAccIPAMPoolAllocationConfig_ipv4DisallowedCIDR(netmaskLength, disallowedCidr string) string {
+func testAccIPAMPoolCIDRAllocationConfig_ipv4Disallowed(netmaskLength, disallowedCidr string) string {
 	return acctest.ConfigCompose(
 		testAccIPAMPoolCIDRConfig_privateBase,
 		fmt.Sprintf(`
@@ -221,4 +263,31 @@ resource "aws_vpc_ipam_pool_cidr_allocation" "test" {
   ]
 }
 `, netmaskLength, disallowedCidr))
+}
+
+func testAccIPAMPoolCIDRAllocationConfig_multiple(cidr1, cidr2 string) string {
+	return acctest.ConfigCompose(
+		testAccIPAMPoolCIDRConfig_privateBase,
+		fmt.Sprintf(`
+resource "aws_vpc_ipam_pool_cidr_allocation" "test" {
+  ipam_pool_id = aws_vpc_ipam_pool.test.id
+  cidr         = %[1]q
+  depends_on = [
+    aws_vpc_ipam_pool_cidr.test
+  ]
+}
+
+resource "aws_vpc_ipam_pool_cidr" "test2" {
+  ipam_pool_id = aws_vpc_ipam_pool.test.id
+  cidr         = "10.1.0.0/24"
+}
+
+resource "aws_vpc_ipam_pool_cidr_allocation" "test2" {
+  ipam_pool_id = aws_vpc_ipam_pool.test.id
+  cidr         = %[2]q
+  depends_on = [
+    aws_vpc_ipam_pool_cidr.test2
+  ]
+}
+`, cidr1, cidr2))
 }
