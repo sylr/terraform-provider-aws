@@ -39,6 +39,12 @@ BUG FIXES:
 * resource/aws_dynamodb_table: Fix bug causing spurious diffs with and preventing proper updating of `stream_enabled` and `stream_view_type` ([#27566](https://github.com/hashicorp/terraform-provider-aws/issues/27566))
 * resource/aws_instance: Use EC2 API idempotency to ensure that only a single Instance is created ([#27561](https://github.com/hashicorp/terraform-provider-aws/issues/27561))
 
+## 4.38.0-sylr.1 (November 7, 2022)
+
+NOTES:
+
+* **Merge upstream v4.38.0**
+
 ## 4.37.0 (October 27, 2022)
 
 NOTES:
