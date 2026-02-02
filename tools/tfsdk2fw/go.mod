@@ -3,7 +3,7 @@ module github.com/hashicorp/terraform-provider-aws/tools/tfsdk2fw
 go 1.25.6
 
 require (
-	github.com/hashicorp/terraform-plugin-sdk/v2 v2.38.1
+	github.com/hashicorp/terraform-plugin-sdk/v2 v2.38.2
 	github.com/hashicorp/terraform-provider-aws v1.60.1-0.20220322001452-8f7a597d0c24
 )
 
@@ -192,6 +192,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/mediastore v1.29.17 // indirect
 	github.com/aws/aws-sdk-go-v2/service/memorydb v1.33.10 // indirect
 	github.com/aws/aws-sdk-go-v2/service/mgn v1.39.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/mpa v1.5.9 // indirect
 	github.com/aws/aws-sdk-go-v2/service/mq v1.34.15 // indirect
 	github.com/aws/aws-sdk-go-v2/service/mwaa v1.39.18 // indirect
 	github.com/aws/aws-sdk-go-v2/service/mwaaserverless v1.0.5 // indirect
