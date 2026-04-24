@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int32default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int32planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
@@ -43,6 +44,7 @@ const (
 	defaultConnectionAttempts int32 = 3
 	defaultConnectionTimeout  int32 = 10
 
+	// AWS-side defaults; not set in the schema (see UseStateForUnknown below), used by tests.
 	defaultOriginKeepaliveTimeout int32 = 5
 	defaultOriginReadTimeout      int32 = 30
 )
@@ -487,12 +489,16 @@ func (r *multiTenantDistributionResource) Schema(ctx context.Context, request re
 									"origin_keepalive_timeout": schema.Int32Attribute{
 										Optional: true,
 										Computed: true,
-										Default:  int32default.StaticInt32(defaultOriginKeepaliveTimeout),
+										PlanModifiers: []planmodifier.Int32{
+											int32planmodifier.UseStateForUnknown(),
+										},
 									},
 									"origin_read_timeout": schema.Int32Attribute{
 										Optional: true,
 										Computed: true,
-										Default:  int32default.StaticInt32(defaultOriginReadTimeout),
+										PlanModifiers: []planmodifier.Int32{
+											int32planmodifier.UseStateForUnknown(),
+										},
 									},
 									"origin_protocol_policy": schema.StringAttribute{
 										Required:   true,
@@ -548,12 +554,16 @@ func (r *multiTenantDistributionResource) Schema(ctx context.Context, request re
 									"origin_keepalive_timeout": schema.Int32Attribute{
 										Optional: true,
 										Computed: true,
-										Default:  int32default.StaticInt32(defaultOriginKeepaliveTimeout),
+										PlanModifiers: []planmodifier.Int32{
+											int32planmodifier.UseStateForUnknown(),
+										},
 									},
 									"origin_read_timeout": schema.Int32Attribute{
 										Optional: true,
 										Computed: true,
-										Default:  int32default.StaticInt32(defaultOriginReadTimeout),
+										PlanModifiers: []planmodifier.Int32{
+											int32planmodifier.UseStateForUnknown(),
+										},
 									},
 									"vpc_origin_id": schema.StringAttribute{
 										Required: true,
